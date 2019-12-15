@@ -8,20 +8,20 @@ import { responsePathAsArray } from 'graphql'
 
 class Posts extends Component {
 
-  componentDidMount(){
+  componentDidMount() {
     Notification.requestPermission();
   }
-  constructor () {
+  constructor() {
     super();
     this.state = {
-      posts : []
+      posts: []
     }
   }
 
   componentDidMount() {
     this.props.apollo_client
-    .query({
-      query:gql`
+      .query({
+        query: gql`
       {
         posts(user_id: "a"){
           id
@@ -34,22 +34,52 @@ class Posts extends Component {
       }
       }
     `})
-  .then(response => {
-    this.setState({posts: response.data.posts});
-  });
-  this.posts_channel = this.props.pusher.subscribe('posts-channel');
-  this.posts_channel.bind("new-post", data => {
-    this.setState({posts: this.state.posts.concat(data.post)});
-  },this)
+      .then(response => {
+        this.setState({ posts: response.data.posts });
+      });
+    this.posts_channel = this.props.pusher.subscribe('posts-channel');
+    this.posts_channel.bind("new-post", data => {
+      this.setState({ posts: this.state.posts.concat(data.post) });
+      if (Notification.permission === 'granted') {
+        try {
+          let notification = new Notification(
+            'Pusher Instagram Clone',
+            {
+              body:`New post from ${data.post.user.nickname}`,
+              icon: 'https://img.stackshare.io/service/115/Pusher_logo.png',
+              image: `${data.post.image}`,
+            }
+          );
+          notification.onclick = function(event){
+            window.open('http://localhost:3000','_blank');
+          }
+        } catch (e) {
+          console.log('Error displaying notofocation');
+        }
+      }
+    }, this)
   }
-  render(){
+  render() {
     return (
-      <div className="Posts">
-        {this.state.posts.map(post => <Post nickname={post.user.nickname} avatar={post.user.avatar} image={post.image} caption={post.caption} key={post.id} />)}
+      <div>
+        <div className="Posts">
+          {this.state.posts
+            .slice(0)
+            .reverse()
+            .map(post => (
+              <Post
+                nickname={post.user.nickname}
+                avatar={post.user.avatar}
+                image={post.image}
+                caption={post.caption}
+                key={post.id}
+              />
+            ))}
+        </div>
       </div>
     )
   }
-  
+
 }
 
 // const Posts = () => {
